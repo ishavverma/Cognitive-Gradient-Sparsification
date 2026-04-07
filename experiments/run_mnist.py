@@ -106,31 +106,31 @@ def main():
     total_start = time.time()
     results = {}
 
-    # 1. Standard training (baseline) — 10% of MNIST
+    # 1. Standard training (baseline) — 2% of MNIST
     print("\n" + "~"*60)
-    print("  [1/3] Standard Training Baseline (10% MNIST)")
+    print("  [1/3] Standard Training Baseline (2% MNIST)")
     print("~"*60)
-    results['Standard (10%)'] = run_experiment(
-        use_cgs=False, subset_fraction=0.1, test_subset=0.2,
-        epochs=5, batch_size=64, lr=0.001
+    results['Standard (2%)'] = run_experiment(
+        use_cgs=False, subset_fraction=0.02, test_subset=0.1,
+        epochs=3, batch_size=32, lr=0.001
     )
 
-    # 2. CGS training — same 10% of MNIST 
+    # 2. CGS training — same 2% of MNIST 
     print("\n" + "~"*60)
-    print("  [2/3] CGS Training (10% MNIST)")
-    print("~"*60)
-    results['CGS (10%)'] = run_experiment(
-        use_cgs=True, subset_fraction=0.1, test_subset=0.2,
-        epochs=5, batch_size=64, lr=0.001
-    )
-
-    # 3. CGS with very limited data (2%) — data-efficiency stress test
-    print("\n" + "~"*60)
-    print("  [3/3] CGS Data-Efficiency Test (2% MNIST)")
+    print("  [2/3] CGS Training (2% MNIST)")
     print("~"*60)
     results['CGS (2%)'] = run_experiment(
-        use_cgs=True, subset_fraction=0.02, test_subset=0.2,
-        epochs=10, batch_size=32, lr=0.002
+        use_cgs=True, subset_fraction=0.02, test_subset=0.1,
+        epochs=3, batch_size=32, lr=0.001
+    )
+
+    # 3. CGS with very limited data (0.5%) — data-efficiency stress test
+    print("\n" + "~"*60)
+    print("  [3/3] CGS Data-Efficiency Test (0.5% MNIST)")
+    print("~"*60)
+    results['CGS (0.5%)'] = run_experiment(
+        use_cgs=True, subset_fraction=0.005, test_subset=0.1,
+        epochs=5, batch_size=16, lr=0.002
     )
 
     total_time = time.time() - total_start
