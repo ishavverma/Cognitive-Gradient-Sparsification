@@ -1,0 +1,12 @@
+*/__pycache__
+logs/
+data/
+checkpoints/
+results/
+models/
+*.pt
+*.pth
+*.onnx
+*.tflite
+*.keras
+*.h5

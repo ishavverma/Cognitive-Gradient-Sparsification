@@ -179,9 +179,3 @@ Only gradients with **high GID** are used for parameter updates.
 ├── experiments/     # Benchmarks and tests
 └── config/          # Configuration files
 ```
-
----
-
-## 📄 License
-
-Research project — all rights reserved.

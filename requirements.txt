@@ -1,0 +1,7 @@
+# CGS Framework Requirements
+numpy>=1.21.0
+matplotlib>=3.5.0
+
+# Optional: for weight export only (not used in training)
+# torch>=1.9.0
+# tensorflow>=2.8.0

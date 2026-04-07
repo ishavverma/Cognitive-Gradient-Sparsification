@@ -1,0 +1,28 @@
+# CGS Default Configuration
+
+model:
+  variant: S
+  input_dim: 784
+  num_classes: 10
+
+training:
+  epochs: 10
+  batch_size: 64
+  learning_rate: 0.001
+  optimizer: adam
+
+cgs:
+  enabled: true
+  use_full_probing: false
+  gid_alpha: 0.3
+  gid_beta: 0.4
+  gid_gamma: 0.3
+  sparsity_mode: hybrid
+  sparsity_threshold: 0.3
+  warmup_epochs: 2
+  block_granularity: module
+
+data:
+  dataset: mnist
+  subset_fraction: 1.0
+  normalize: true
