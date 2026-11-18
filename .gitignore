@@ -11,3 +11,4 @@ models/
 *.keras
 *.h5
 *.pyc
+data/
