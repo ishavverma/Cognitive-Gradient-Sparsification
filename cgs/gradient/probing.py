@@ -74,7 +74,16 @@ class GradientProbingLayer:
         loss.backward()
 
         # Step 3: For each parameter, compute gradient statistics and simulate update
-        for name, param in model.named_parameters():
+        named_parameters = list(model.named_parameters())
+        if self.probe_fraction < 1.0:
+            selected_count = max(1, int(len(named_parameters) * self.probe_fraction))
+            selected_indices = set(np.random.choice(
+                len(named_parameters), size=selected_count, replace=False
+            ).tolist())
+        else:
+            selected_indices = set(range(len(named_parameters)))
+
+        for param_index, (name, param) in enumerate(named_parameters):
             if param.grad is None:
                 continue
 
@@ -91,15 +100,16 @@ class GradientProbingLayer:
                 }
                 continue
 
-            # Simulate update: temporarily apply gradient and measure new loss
-            predicted_loss_change = self._simulate_update(
-                model, param, grad, loss_fn, x, targets, current_loss_val
-            )
-
-            # Probe direction stability via multiple small perturbations
-            direction_stability = self._probe_stability(
-                model, param, grad, loss_fn, x, targets
-            )
+            if param_index in selected_indices:
+                predicted_loss_change = self._simulate_update(
+                    model, param, grad, loss_fn, x, targets, current_loss_val
+                )
+                direction_stability = self._probe_stability(
+                    model, param, grad, loss_fn, x, targets
+                )
+            else:
+                predicted_loss_change = 0.0
+                direction_stability = 1.0
 
             preview_map[name] = {
                 'gradient': grad,

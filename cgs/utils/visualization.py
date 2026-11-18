@@ -66,15 +66,15 @@ def plot_training_history(history: dict, save_path: str = 'training_curves.png')
         plt.tight_layout()
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
         plt.close()
-        print(f"  📊 Training curves saved to {save_path}")
+        print(f"  [saved] Training curves: {save_path}")
 
     except ImportError:
-        print("  ⚠️  matplotlib not available. Saving raw data instead.")
+        print("  [warning] matplotlib not available. Saving raw data instead.")
         import json
         data_path = save_path.replace('.png', '.json')
         with open(data_path, 'w') as f:
             json.dump(history, f, indent=2)
-        print(f"  📊 Training data saved to {data_path}")
+        print(f"  [saved] Training data: {data_path}")
 
 
 def plot_comparison(results: Dict[str, dict], save_path: str = 'comparison.png'):
@@ -125,7 +125,7 @@ def plot_comparison(results: Dict[str, dict], save_path: str = 'comparison.png')
         plt.tight_layout()
         plt.savefig(save_path, dpi=150, bbox_inches='tight')
         plt.close()
-        print(f"  📊 Comparison chart saved to {save_path}")
+        print(f"  [saved] Comparison chart: {save_path}")
 
     except ImportError:
-        print("  ⚠️  matplotlib not available.")
+        print("  [warning] matplotlib not available.")

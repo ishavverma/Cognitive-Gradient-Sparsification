@@ -42,7 +42,7 @@ def save_weights(model: Module, path: str, metadata: Optional[dict] = None):
     with open(meta_path, 'w') as f:
         json.dump(meta, f, indent=2)
 
-    print(f"  💾 Saved weights to {path} ({model.count_parameters():,} parameters)")
+    print(f"  [saved] {path} ({model.count_parameters():,} parameters)")
 
 
 def load_weights(model: Module, path: str):
@@ -59,7 +59,7 @@ def load_weights(model: Module, path: str):
     data = np.load(path)
     state_dict = {k: data[k] for k in data.files}
     model.load_state_dict(state_dict)
-    print(f"  ✅ Loaded weights from {path}")
+    print(f"  [loaded] {path}")
 
 
 def export_to_pytorch(model: Module, path: str):
@@ -81,15 +81,15 @@ def export_to_pytorch(model: Module, path: str):
             torch_state[name] = torch.tensor(data)
 
         torch.save(torch_state, path)
-        print(f"  ✅ Exported to PyTorch format: {path}")
+        print(f"  [exported] PyTorch: {path}")
 
     except ImportError:
-        print("  ⚠️  PyTorch not installed. Install with: pip install torch")
+        print("  [warning] PyTorch not installed. Install with: pip install torch")
         # Fallback: save as numpy
         fallback_path = path.replace('.pt', '_pytorch_weights.npz')
         state = model.state_dict()
         np.savez(fallback_path, **state)
-        print(f"  💾 Saved weights as NumPy (load manually into PyTorch): {fallback_path}")
+        print(f"  [saved] NumPy weights for manual PyTorch loading: {fallback_path}")
 
 
 def export_to_tensorflow(model: Module, path: str):
@@ -113,21 +113,21 @@ def export_to_tensorflow(model: Module, path: str):
 
             checkpoint = tf.train.Checkpoint(**variables)
             checkpoint.save(path.replace('.h5', ''))
-            print(f"  ✅ Exported to TensorFlow checkpoint: {path}")
+            print(f"  [exported] TensorFlow checkpoint: {path}")
         else:
             # Save as numpy with TF-compatible naming
             os.makedirs(path, exist_ok=True)
             for name, data in state.items():
                 safe_name = name.replace('.', '_')
                 np.save(os.path.join(path, f"{safe_name}.npy"), data)
-            print(f"  ✅ Exported to TensorFlow format: {path}")
+            print(f"  [exported] TensorFlow: {path}")
 
     except ImportError:
-        print("  ⚠️  TensorFlow not installed. Install with: pip install tensorflow")
+        print("  [warning] TensorFlow not installed. Install with: pip install tensorflow")
         fallback_path = path + '_tf_weights.npz' if not path.endswith('.npz') else path
         state = model.state_dict()
         np.savez(fallback_path, **state)
-        print(f"  💾 Saved weights as NumPy: {fallback_path}")
+        print(f"  [saved] NumPy weights: {fallback_path}")
 
 
 def export_to_keras(model: Module, path: str):
@@ -153,11 +153,11 @@ def export_to_keras(model: Module, path: str):
         with h5py.File(weights_path, 'w') as f:
             for name, data in state.items():
                 f.create_dataset(name, data=data)
-        print(f"  ✅ Exported to Keras format: {weights_path}")
+        print(f"  [exported] Keras: {weights_path}")
 
     except ImportError:
-        print("  ⚠️  TensorFlow/Keras not installed. Install with: pip install tensorflow")
+        print("  [warning] TensorFlow/Keras not installed. Install with: pip install tensorflow")
         fallback_path = path + '_keras_weights.npz' if not path.endswith('.npz') else path
         state = model.state_dict()
         np.savez(fallback_path, **state)
-        print(f"  💾 Saved weights as NumPy: {fallback_path}")
+        print(f"  [saved] NumPy weights: {fallback_path}")

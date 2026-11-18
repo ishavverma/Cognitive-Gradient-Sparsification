@@ -82,7 +82,7 @@ class CheckpointCallback(Callback):
             path = os.path.join(self.save_dir, 'best_model.npz')
             state = trainer.model.state_dict()
             np.savez(path, **state)
-            print(f"  💾 Saved best model (epoch {epoch+1}, {self.monitor}={current:.4f})")
+            print(f"  [checkpoint] Epoch {epoch+1}, {self.monitor}={current:.4f}")
 
         # Also save periodic checkpoints
         if (epoch + 1) % 5 == 0:

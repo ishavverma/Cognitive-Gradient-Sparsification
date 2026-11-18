@@ -25,6 +25,7 @@ from cgs.training.trainer import CGSTrainer
 from cgs.training.callbacks import LoggingCallback, CheckpointCallback
 from cgs.export.serializer import save_weights
 from cgs.utils.visualization import plot_training_history, plot_comparison
+from cgs.utils.config import load_config
 
 
 def run_experiment(use_cgs: bool, subset_fraction: float = 0.1,
@@ -98,6 +99,9 @@ def run_experiment(use_cgs: bool, subset_fraction: float = 0.1,
 
 def main():
     os.makedirs('./results', exist_ok=True)
+    config = load_config('./config/default.yaml')
+    benchmark = config.get('benchmark', {})
+    set_seed(int(benchmark.get('seed', 42)))
 
     print("="*60)
     print("  CGS — MNIST Benchmark (CGS vs Standard Training)")
@@ -110,28 +114,43 @@ def main():
     print("\n" + "~"*60)
     print("  [1/3] Standard Training Baseline (2% MNIST)")
     print("~"*60)
-    results['Standard (2%)'] = run_experiment(
-        use_cgs=False, subset_fraction=0.02, test_subset=0.1,
-        epochs=3, batch_size=32, lr=0.001
-    )
+    standard = benchmark.get('standard_2pct', {})
+    results['Standard (2%)'] = run_experiment(**{
+        'use_cgs': standard.get('use_cgs', False),
+        'subset_fraction': standard.get('subset_fraction', 0.02),
+        'test_subset': standard.get('test_subset', 0.1),
+        'epochs': standard.get('epochs', 3),
+        'batch_size': standard.get('batch_size', 32),
+        'lr': standard.get('learning_rate', 0.001),
+    })
 
     # 2. CGS training — same 2% of MNIST 
     print("\n" + "~"*60)
     print("  [2/3] CGS Training (2% MNIST)")
     print("~"*60)
-    results['CGS (2%)'] = run_experiment(
-        use_cgs=True, subset_fraction=0.02, test_subset=0.1,
-        epochs=3, batch_size=32, lr=0.001
-    )
+    cgs_2pct = benchmark.get('cgs_2pct', {})
+    results['CGS (2%)'] = run_experiment(**{
+        'use_cgs': cgs_2pct.get('use_cgs', True),
+        'subset_fraction': cgs_2pct.get('subset_fraction', 0.02),
+        'test_subset': cgs_2pct.get('test_subset', 0.1),
+        'epochs': cgs_2pct.get('epochs', 3),
+        'batch_size': cgs_2pct.get('batch_size', 32),
+        'lr': cgs_2pct.get('learning_rate', 0.001),
+    })
 
     # 3. CGS with very limited data (0.5%) — data-efficiency stress test
     print("\n" + "~"*60)
     print("  [3/3] CGS Data-Efficiency Test (0.5% MNIST)")
     print("~"*60)
-    results['CGS (0.5%)'] = run_experiment(
-        use_cgs=True, subset_fraction=0.005, test_subset=0.1,
-        epochs=5, batch_size=16, lr=0.002
-    )
+    cgs_limited = benchmark.get('cgs_0_5pct', {})
+    results['CGS (0.5%)'] = run_experiment(**{
+        'use_cgs': cgs_limited.get('use_cgs', True),
+        'subset_fraction': cgs_limited.get('subset_fraction', 0.005),
+        'test_subset': cgs_limited.get('test_subset', 0.1),
+        'epochs': cgs_limited.get('epochs', 5),
+        'batch_size': cgs_limited.get('batch_size', 16),
+        'lr': cgs_limited.get('learning_rate', 0.002),
+    })
 
     total_time = time.time() - total_start
 

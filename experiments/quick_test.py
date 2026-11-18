@@ -1,5 +1,5 @@
 """
-Quick Test — Validates the CGS framework end-to-end with synthetic data.
+Quick Test - Validates the CGS framework end-to-end with synthetic data.
 
 This is a fast smoke test that verifies:
   1. Tensor autograd works correctly
@@ -21,7 +21,7 @@ from cgs.utils.seeding import set_seed
 
 def test_autograd():
     """Test automatic differentiation correctness."""
-    print("\n  🔍 Test 1: Autograd Correctness")
+    print("\n  [Test 1] Autograd Correctness")
 
     from cgs.tensor.tensor import CGSTensor
     from cgs.tensor.autograd import numerical_gradient
@@ -47,8 +47,8 @@ def test_autograd():
     num_grad = numerical_gradient(fn, w)
 
     error = np.max(np.abs(analytical_grad - num_grad))
-    status = "✅ PASS" if error < 1e-5 else "❌ FAIL"
-    print(f"     Gradient error: {error:.2e} — {status}")
+    status = "[PASS]" if error < 1e-5 else "[FAIL]"
+    print(f"     Gradient error: {error:.2e} - {status}")
 
     # Test 2: Cross-entropy gradient
     logits = CGSTensor(np.random.randn(4, 3), requires_grad=True)
@@ -65,15 +65,15 @@ def test_autograd():
     numerical = numerical_gradient(ce_fn, logits)
 
     error = np.max(np.abs(analytical - numerical))
-    status = "✅ PASS" if error < 1e-4 else "❌ FAIL"
-    print(f"     Cross-entropy gradient error: {error:.2e} — {status}")
+    status = "[PASS]" if error < 1e-4 else "[FAIL]"
+    print(f"     Cross-entropy gradient error: {error:.2e} - {status}")
 
     return error < 1e-4
 
 
 def test_neural_network():
     """Test neural network layers."""
-    print("\n  🔍 Test 2: Neural Network Layers")
+    print("\n  [Test 2] Neural Network Layers")
 
     from cgs.tensor.tensor import CGSTensor
     from cgs.nn.linear import Linear
@@ -95,7 +95,7 @@ def test_neural_network():
     # Forward pass
     x = CGSTensor(np.random.randn(8, 10))
     output = model(x)
-    print(f"     Input shape: {x.shape} → Output shape: {output.shape}")
+    print(f"     Input shape: {x.shape} -> Output shape: {output.shape}")
 
     # Loss and backward
     targets = CGSTensor(np.array([0, 1, 2, 3, 4, 0, 1, 2]))
@@ -105,15 +105,15 @@ def test_neural_network():
 
     # Check gradients exist
     has_grads = all(p.grad is not None for p in model.parameters())
-    status = "✅ PASS" if has_grads and output.shape == (8, 5) else "❌ FAIL"
-    print(f"     Loss: {float(loss.data):.4f}, Gradients present: {has_grads} — {status}")
+    status = "[PASS]" if has_grads and output.shape == (8, 5) else "[FAIL]"
+    print(f"     Loss: {float(loss.data):.4f}, Gradients present: {has_grads} - {status}")
 
     return has_grads
 
 
 def test_cgs_net():
     """Test CGS-Net model construction."""
-    print("\n  🔍 Test 3: CGS-Net Model")
+    print("\n  [Test 3] CGS-Net Model")
 
     from cgs.tensor.tensor import CGSTensor
     from cgs.model.cgs_net import CGSNet
@@ -126,7 +126,7 @@ def test_cgs_net():
     # Forward pass
     x = CGSTensor(np.random.randn(4, 20))
     output = model(x)
-    print(f"     Input: {x.shape} → Output: {output.shape}")
+    print(f"     Input: {x.shape} -> Output: {output.shape}")
 
     # Backward
     targets = CGSTensor(np.array([0, 1, 2, 3]))
@@ -135,15 +135,15 @@ def test_cgs_net():
 
     grad_count = sum(1 for p in model.parameters() if p.grad is not None)
     total_count = sum(1 for _ in model.parameters())
-    status = "✅ PASS" if output.shape == (4, 5) else "❌ FAIL"
-    print(f"     Loss: {float(loss.data):.4f}, Grads: {grad_count}/{total_count} — {status}")
+    status = "[PASS]" if output.shape == (4, 5) else "[FAIL]"
+    print(f"     Loss: {float(loss.data):.4f}, Grads: {grad_count}/{total_count} - {status}")
 
     return output.shape == (4, 5)
 
 
 def test_gradient_intelligence():
     """Test Gradient Intelligence Engine."""
-    print("\n  🔍 Test 4: Gradient Intelligence Engine")
+    print("\n  [Test 4] Gradient Intelligence Engine")
 
     from cgs.tensor.tensor import CGSTensor
     from cgs.model.cgs_net import CGSNet
@@ -164,15 +164,15 @@ def test_gradient_intelligence():
     print(f"     GID scores: {[f'{v:.3f}' for v in list(importance_map.values())[:5]]}")
 
     has_scores = len(importance_map) > 0
-    status = "✅ PASS" if has_scores else "❌ FAIL"
-    print(f"     Memory graph nodes: {engine.memory_graph.get_stats()['total_nodes']} — {status}")
+    status = "[PASS]" if has_scores else "[FAIL]"
+    print(f"     Memory graph nodes: {engine.memory_graph.get_stats()['total_nodes']} - {status}")
 
     return has_scores
 
 
 def test_sparse_training():
     """Test sparse training with CGS pipeline."""
-    print("\n  🔍 Test 5: CGS Training Pipeline (Synthetic Data)")
+    print("\n  [Test 5] CGS Training Pipeline (Synthetic Data)")
 
     from cgs.tensor.tensor import CGSTensor
     from cgs.model.cgs_net import CGSNet
@@ -205,16 +205,16 @@ def test_sparse_training():
     final_loss = history['train_loss'][-1]
     improved = final_loss < initial_loss
 
-    status = "✅ PASS" if improved else "⚠️  MARGINAL"
-    print(f"\n     Initial loss: {initial_loss:.4f} → Final loss: {final_loss:.4f}")
-    print(f"     Loss decreased: {improved} — {status}")
+    status = "[PASS]" if improved else "[MARGINAL]"
+    print(f"\n     Initial loss: {initial_loss:.4f} -> Final loss: {final_loss:.4f}")
+    print(f"     Loss decreased: {improved} - {status}")
 
     return improved
 
 
 def test_serialization():
     """Test weight save/load."""
-    print("\n  🔍 Test 6: Weight Serialization")
+    print("\n  [Test 6] Weight Serialization")
 
     from cgs.tensor.tensor import CGSTensor
     from cgs.model.cgs_net import CGSNet
@@ -237,8 +237,8 @@ def test_serialization():
     out2 = model2(x).data.copy()
     match = np.allclose(out1, out2, atol=1e-6)
 
-    status = "✅ PASS" if match else "❌ FAIL"
-    print(f"     Outputs match after save/load: {match} — {status}")
+    status = "[PASS]" if match else "[FAIL]"
+    print(f"     Outputs match after save/load: {match} - {status}")
 
     # Cleanup
     import shutil
@@ -251,7 +251,7 @@ def main():
     set_seed(42)
 
     print("="*60)
-    print("  🧠 CGS Framework — Quick Validation Test")
+    print("  CGS Framework - Quick Validation Test")
     print("="*60)
 
     results = {
@@ -264,17 +264,17 @@ def main():
     }
 
     print("\n" + "="*60)
-    print("  📋 Test Summary")
+    print("  Test Summary")
     print("="*60)
 
     all_pass = True
     for name, passed in results.items():
-        status = "✅ PASS" if passed else "❌ FAIL"
+        status = "[PASS]" if passed else "[FAIL]"
         print(f"  {status}  {name}")
         if not passed:
             all_pass = False
 
-    print(f"\n  {'🎉 All tests passed!' if all_pass else '⚠️  Some tests failed.'}")
+    print(f"\n  {'All tests passed!' if all_pass else 'Some tests failed.'}")
     print("="*60)
     return all_pass
 

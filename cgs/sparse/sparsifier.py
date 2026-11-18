@@ -38,7 +38,8 @@ class GradientSparsifier:
         self._sparsity_history: list = []
 
     def sparsify(self, gid_scores: Dict[str, float],
-                 gradients: Dict[str, np.ndarray]) -> Tuple[Dict[str, np.ndarray], dict]:
+                 gradients: Dict[str, np.ndarray],
+                 elementwise: bool = False) -> Tuple[Dict[str, np.ndarray], dict]:
         """
         Apply sparsification to gradients based on GID scores.
 
@@ -52,6 +53,20 @@ class GradientSparsifier:
               - stats: Sparsification statistics
         """
         self._step += 1
+
+        if elementwise:
+            sparse_gradients, kept, total = self._elementwise_filter(gid_scores, gradients)
+            sparsity = 1.0 - (kept / max(total, 1))
+            self._sparsity_history.append(sparsity)
+            stats = {
+                'total_params': total,
+                'kept_params': kept,
+                'filtered_params': total - kept,
+                'sparsity': sparsity,
+                'threshold_used': self.threshold,
+                'elementwise': True,
+            }
+            return sparse_gradients, stats
 
         if self.mode == 'threshold':
             mask = self._threshold_filter(gid_scores)
@@ -111,12 +126,54 @@ class GradientSparsifier:
         """Combine threshold and top-K: must pass threshold AND be in top K%."""
         threshold_mask = self._threshold_filter(scores)
         topk_mask = self._topk_filter(scores)
-
-        # Union: pass either filter (more permissive than intersection)
+        # Hybrid is intentionally strict: a parameter must satisfy both filters.
         mask = {}
         for name in scores:
-            mask[name] = threshold_mask.get(name, False) or topk_mask.get(name, False)
+            mask[name] = threshold_mask.get(name, False) and topk_mask.get(name, False)
         return mask
+
+    def _elementwise_filter(self, gid_scores: Dict[str, float],
+                            gradients: Dict[str, np.ndarray]) -> Tuple[Dict[str, np.ndarray], int, int]:
+        """Create element-level masks using gradient magnitude and parameter GID."""
+        sparse_gradients = {}
+        kept = 0
+        total = 0
+
+        for name, grad in gradients.items():
+            flat = grad.ravel()
+            total += flat.size
+            if flat.size == 0:
+                sparse_gradients[name] = grad.copy()
+                continue
+
+            gid = gid_scores.get(name, 0.0)
+            abs_grad = np.abs(flat)
+            threshold_mask = abs_grad >= self.threshold * float(np.max(abs_grad))
+
+            k = max(1, int(flat.size * self.top_k_ratio))
+            top_indices = np.argpartition(abs_grad, -k)[-k:]
+            topk_mask = np.zeros(flat.size, dtype=bool)
+            topk_mask[top_indices] = True
+
+            if self.mode == 'threshold':
+                mask = threshold_mask
+            elif self.mode == 'topk':
+                mask = topk_mask
+            elif self.mode == 'hybrid':
+                mask = threshold_mask & topk_mask
+            else:
+                raise ValueError(f"Unknown sparsification mode: {self.mode}")
+
+            # GID below threshold in threshold/hybrid modes removes the whole tensor.
+            if gid < self.threshold and self.mode != 'topk':
+                mask[:] = False
+
+            sparse_flat = np.zeros_like(flat)
+            sparse_flat[mask] = flat[mask]
+            sparse_gradients[name] = sparse_flat.reshape(grad.shape)
+            kept += int(np.count_nonzero(mask))
+
+        return sparse_gradients, kept, total
 
     def _enforce_minimum(self, mask: Dict[str, bool],
                         scores: Dict[str, float]) -> Dict[str, bool]:

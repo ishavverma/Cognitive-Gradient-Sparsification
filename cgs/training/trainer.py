@@ -17,7 +17,7 @@ Implements the full closed feedback loop:
 import numpy as np
 import time
 from typing import Optional, List, Dict
-from ..tensor.tensor import CGSTensor
+from ..tensor.tensor import CGSTensor, no_grad
 from ..nn.module import Module
 from ..nn.loss import CrossEntropyLoss
 from ..optim.optimizer import Optimizer
@@ -161,7 +161,7 @@ class CGSTrainer:
             for cb in self.callbacks:
                 stop = cb.on_epoch_end(self, epoch, train_metrics, val_metrics)
                 if stop:
-                    print(f"\n  ⛔ Early stopping triggered at epoch {epoch + 1}")
+                    print(f"\n  [early-stop] Triggered at epoch {epoch + 1}")
                     return self._history
 
         for cb in self.callbacks:
@@ -238,7 +238,9 @@ class CGSTrainer:
         gid_scores = {name: info['gid_score'] for name, info in report.items()}
 
         # Step 2: Sparsify gradients
-        sparse_grads, sparsity_stats = self.sparsifier.sparsify(gid_scores, gradients)
+        sparse_grads, sparsity_stats = self.sparsifier.sparsify(
+            gid_scores, gradients, elementwise=True
+        )
 
         # Step 3: Apply sparse gradients to model parameters
         for name, param in self.model.named_parameters():
@@ -279,13 +281,15 @@ class CGSTrainer:
             controller_update['gamma'],
         )
 
-        # Compute batch metrics
-        with_predictions = self.model(x)
-        predictions = np.argmax(with_predictions.data, axis=1)
-        correct = int(np.sum(predictions == y.data.astype(int)))
+        # Compute batch metrics from a single post-update forward pass
+        with no_grad():
+            with_predictions = self.model(x)
+            predictions = np.argmax(with_predictions.data, axis=1)
+            correct = int(np.sum(predictions == y.data.astype(int)))
+            post_update_loss = float(self.loss_fn(with_predictions, y).data)
 
         return {
-            'loss': self._compute_loss(x, y),
+            'loss': post_update_loss,
             'correct': correct,
             'batch_size': x.shape[0],
             'sparsity': sparsity_stats['sparsity'],
@@ -355,7 +359,7 @@ class CGSTrainer:
 
     def _print_epoch_summary(self, epoch, total_epochs, train_metrics, val_metrics, epoch_time):
         """Print formatted epoch summary."""
-        parts = [f"  📊 Epoch {epoch+1}/{total_epochs}"]
+        parts = [f"  [epoch] {epoch+1}/{total_epochs}"]
         parts.append(f"Loss: {train_metrics['loss']:.4f}")
         parts.append(f"Acc: {train_metrics['accuracy']:.2%}")
         if val_metrics:

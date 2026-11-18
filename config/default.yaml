@@ -26,3 +26,27 @@ data:
   dataset: mnist
   subset_fraction: 1.0
   normalize: true
+
+benchmark:
+  seed: 42
+  standard_2pct:
+    use_cgs: false
+    subset_fraction: 0.02
+    test_subset: 0.1
+    epochs: 3
+    batch_size: 32
+    learning_rate: 0.001
+  cgs_2pct:
+    use_cgs: true
+    subset_fraction: 0.02
+    test_subset: 0.1
+    epochs: 3
+    batch_size: 32
+    learning_rate: 0.001
+  cgs_0_5pct:
+    use_cgs: true
+    subset_fraction: 0.005
+    test_subset: 0.1
+    epochs: 5
+    batch_size: 16
+    learning_rate: 0.002

@@ -18,7 +18,7 @@ def load_config(path: str = 'config/default.yaml') -> dict:
         if os.path.exists(json_path):
             path = json_path
         else:
-            print(f"  ⚠️  Config file not found: {path}, using defaults")
+            print(f"  [warning] Config file not found: {path}, using defaults")
             return _default_config()
 
     with open(path, 'r') as f:
@@ -30,40 +30,44 @@ def load_config(path: str = 'config/default.yaml') -> dict:
 
 
 def _parse_simple_yaml(text: str) -> dict:
-    """Parse a simple YAML file (flat key-value pairs)."""
+    """Parse a small YAML subset including nested benchmark sections."""
     config = {}
-    current_section = config
+    stack = [( -1, config)]
 
-    for line in text.strip().split('\n'):
-        line = line.rstrip()
-        if not line or line.startswith('#'):
+    for raw_line in text.strip().split('\n'):
+        if not raw_line.strip() or raw_line.lstrip().startswith('#'):
             continue
 
-        # Detect section headers
-        if not line.startswith(' ') and line.endswith(':') and ':' not in line[:-1]:
-            section = line[:-1].strip()
-            config[section] = {}
-            current_section = config[section]
+        indentation = len(raw_line) - len(raw_line.lstrip(' '))
+        line = raw_line.strip()
+        if ':' not in line:
             continue
 
-        # Key-value pair
-        if ':' in line:
-            key, value = line.split(':', 1)
-            key = key.strip()
-            value = value.strip()
+        key, raw_value = line.split(':', 1)
+        key = key.strip()
+        raw_value = raw_value.strip()
 
-            # Type inference
-            if value.lower() in ('true', 'yes'):
-                value = True
-            elif value.lower() in ('false', 'no'):
-                value = False
-            elif value.replace('.', '').replace('-', '').isdigit():
-                try:
-                    value = float(value) if '.' in value else int(value)
-                except ValueError:
-                    pass
+        while stack and indentation <= stack[-1][0]:
+            stack.pop()
+        parent = stack[-1][1]
 
-            current_section[key] = value
+        if not raw_value:
+            child = {}
+            parent[key] = child
+            stack.append((indentation, child))
+            continue
+
+        value = raw_value
+        if value.lower() in ('true', 'yes'):
+            value = True
+        elif value.lower() in ('false', 'no'):
+            value = False
+        else:
+            try:
+                value = float(value) if '.' in value else int(value)
+            except ValueError:
+                value = value.strip("'\"")
+        parent[key] = value
 
     return config
 

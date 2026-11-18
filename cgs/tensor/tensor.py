@@ -66,6 +66,8 @@ class CGSTensor:
         _backward_fn: Optional[Callable] = None,
         name: str = "",
     ):
+        from ..backend import get_default_module, get_default_device
+
         if isinstance(data, CGSTensor):
             data = data.data
         if not isinstance(data, np.ndarray):
@@ -73,12 +75,22 @@ class CGSTensor:
         elif data.dtype not in (np.float32, np.float64):
             data = data.astype(np.float64)
 
+        module = get_default_module()
+        if get_default_device() == 'cuda':
+            data = module.asarray(data)
+
         self.data = data
         self.requires_grad = requires_grad
         self.grad: Optional[np.ndarray] = None
         self._prev: Set['CGSTensor'] = _prev or set()
         self._backward_fn: Optional[Callable] = _backward_fn
         self._name = name
+
+    @property
+    def device(self) -> str:
+        """Return the tensor's compute device."""
+        from ..backend import is_gpu_array
+        return 'cuda' if is_gpu_array(self.data) else 'cpu'
 
     # ──────────────────── Properties ────────────────────
 
@@ -225,7 +237,8 @@ class CGSTensor:
 
     def numpy(self) -> np.ndarray:
         """Return the underlying NumPy array (detached)."""
-        return self.data.copy()
+        from ..backend import to_numpy
+        return to_numpy(self.data).copy()
 
 
 def _ensure_tensor(x) -> CGSTensor:

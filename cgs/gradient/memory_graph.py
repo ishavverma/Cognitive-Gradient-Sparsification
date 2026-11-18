@@ -42,8 +42,8 @@ class GradientNode:
             return flat.copy()
 
         # Random projection for dimensionality reduction
-        np.random.seed(42)  # Fixed seed for reproducibility
-        proj_matrix = np.random.randn(max_dim, len(flat)) / np.sqrt(max_dim)
+        rng = np.random.RandomState(42)
+        proj_matrix = rng.randn(max_dim, len(flat)) / np.sqrt(max_dim)
         compressed = proj_matrix @ flat
         return compressed
 

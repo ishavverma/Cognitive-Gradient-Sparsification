@@ -8,6 +8,7 @@ like softmax, cross-entropy, and contrastive losses.
 import numpy as np
 from .tensor import CGSTensor, _ensure_tensor, is_grad_enabled
 from .ops import _should_track, _unbroadcast
+from ..backend import get_array_module
 
 
 def softmax(x: CGSTensor, axis: int = -1) -> CGSTensor:
@@ -17,9 +18,10 @@ def softmax(x: CGSTensor, axis: int = -1) -> CGSTensor:
     softmax(x)_i = exp(x_i - max(x)) / sum(exp(x_j - max(x)))
     """
     # Numerical stability: subtract max
-    x_max = np.max(x.data, axis=axis, keepdims=True)
-    e_x = np.exp(x.data - x_max)
-    s = e_x / np.sum(e_x, axis=axis, keepdims=True)
+    xp = get_array_module(x.data)
+    x_max = xp.max(x.data, axis=axis, keepdims=True)
+    e_x = xp.exp(x.data - x_max)
+    s = e_x / xp.sum(e_x, axis=axis, keepdims=True)
     track = _should_track(x)
 
     out = CGSTensor(s, requires_grad=track, _prev={x})
@@ -81,20 +83,21 @@ def cross_entropy(logits: CGSTensor, targets: CGSTensor) -> CGSTensor:
     target_idx = targets.data.astype(int)
 
     # Numerically stable log-softmax
-    x_max = np.max(logits.data, axis=1, keepdims=True)
+    xp = get_array_module(logits.data)
+    x_max = xp.max(logits.data, axis=1, keepdims=True)
     shifted = logits.data - x_max
-    log_sum_exp = np.log(np.sum(np.exp(shifted), axis=1, keepdims=True))
+    log_sum_exp = xp.log(xp.sum(xp.exp(shifted), axis=1, keepdims=True))
     log_probs = shifted - log_sum_exp
 
     # Negative log likelihood
     nll = -log_probs[np.arange(batch_size), target_idx]
-    loss = np.mean(nll)
+    loss = xp.mean(nll)
     track = _should_track(logits)
 
     out = CGSTensor(loss, requires_grad=track, _prev={logits})
 
     if track:
-        s = np.exp(log_probs)  # softmax probabilities
+        s = xp.exp(log_probs)  # softmax probabilities
 
         def _backward(grad):
             if logits.requires_grad:

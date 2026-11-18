@@ -8,6 +8,15 @@ atomic building blocks of the computation graph.
 
 import numpy as np
 from .tensor import CGSTensor, _ensure_tensor, is_grad_enabled
+from ..backend import get_array_module
+
+
+def _array_module(*arrays):
+    """Use NumPy or CuPy according to the first array operand."""
+    for array in arrays:
+        if hasattr(array, 'shape'):
+            return get_array_module(array)
+    return np
 
 
 def _should_track(*tensors) -> bool:
@@ -23,8 +32,9 @@ def _unbroadcast(grad: np.ndarray, shape: tuple) -> np.ndarray:
     the (3,) tensor must be summed over axis 0 to get back to (3,).
     """
     # Handle scalar case
+    xp = _array_module(grad)
     if shape == ():
-        return np.sum(grad).reshape(())
+        return xp.sum(grad).reshape(())
 
     # Add leading dimensions if needed
     while grad.ndim > len(shape):
@@ -176,18 +186,19 @@ def matmul(a: CGSTensor, b: CGSTensor) -> CGSTensor:
 
     if track:
         def _backward(grad):
+            xp = _array_module(grad, b.data)
             if a.requires_grad:
                 if b.data.ndim == 1:
-                    a_grad = np.outer(grad, b.data) if grad.ndim == 1 else grad[..., None] * b.data[None, :]
+                    a_grad = xp.outer(grad, b.data) if grad.ndim == 1 else grad[..., None] * b.data[None, :]
                 else:
-                    a_grad = grad @ np.swapaxes(b.data, -1, -2)
+                    a_grad = grad @ xp.swapaxes(b.data, -1, -2)
                 a_grad = _unbroadcast(a_grad, a.shape)
                 a.grad = a_grad if a.grad is None else a.grad + a_grad
             if b.requires_grad:
                 if a.data.ndim == 1:
-                    b_grad = np.outer(a.data, grad) if grad.ndim == 1 else a.data[:, None] * grad[None, :]
+                    b_grad = xp.outer(a.data, grad) if grad.ndim == 1 else a.data[:, None] * grad[None, :]
                 else:
-                    b_grad = np.swapaxes(a.data, -1, -2) @ grad
+                    b_grad = xp.swapaxes(a.data, -1, -2) @ grad
                 b_grad = _unbroadcast(b_grad, b.shape)
                 b.grad = b_grad if b.grad is None else b.grad + b_grad
         out._backward_fn = _backward
@@ -197,10 +208,11 @@ def matmul(a: CGSTensor, b: CGSTensor) -> CGSTensor:
 
 def transpose(a: CGSTensor, axes=None) -> CGSTensor:
     """Transpose with gradient tracking."""
+    xp = _array_module(a.data)
     if axes is None:
         out_data = a.data.T
     else:
-        out_data = np.transpose(a.data, axes)
+        out_data = xp.transpose(a.data, axes)
     track = _should_track(a)
 
     out = CGSTensor(out_data, requires_grad=track, _prev={a})
@@ -227,7 +239,8 @@ def transpose(a: CGSTensor, axes=None) -> CGSTensor:
 
 def relu(x: CGSTensor) -> CGSTensor:
     """ReLU activation with gradient tracking."""
-    out_data = np.maximum(0, x.data)
+    xp = _array_module(x.data)
+    out_data = xp.maximum(0, x.data)
     track = _should_track(x)
 
     out = CGSTensor(out_data, requires_grad=track, _prev={x})
