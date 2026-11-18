@@ -1,84 +1,80 @@
-# 🧠 Cognitive Gradient Sparsification (CGS)
+# Cognitive Gradient Sparsification (CGS)
 
-**A Self-Sufficient Data-Efficient Learning Framework**
+CGS is a NumPy-based research framework for training neural networks with
+gradient-aware, adaptive, and sparse updates. It combines multi-view
+representations, gradient probing, gradient memory, gradient importance
+scoring, sparse routing, and adaptive training controls.
 
-> *CGS is not just an optimization technique — it is a new learning paradigm that redefines how models learn by prioritizing information over volume.*
+Traditional training updates every parameter after backpropagation:
 
----
+`Forward -> Loss -> Backpropagation -> Update all parameters`
 
-## 🔥 What Is CGS?
+CGS adds an analysis stage:
 
-CGS is a **gradient-aware adaptive neural system** that learns efficiently from minimal data by selectively updating model parameters using only **high-information gradients**.
+`Forward -> Gradient Probe -> GID Scoring -> Sparse Mask -> Selective Update`
 
-Traditional training: `Forward → Loss → Backprop → Update ALL parameters`  
-**CGS training**: `Forward → Multi-View Probing → Gradient Intelligence → Selective Update`
+## Features
 
-### Key Innovation: Gradients Are First-Class Citizens
+- Custom tensor engine and reverse-mode automatic differentiation
+- NumPy neural-network layers, activations, normalization, losses, and optimizers
+- Four-view CGS-Net input encoding
+- Attention-based representation fusion
+- Gradient probing and predicted loss-impact estimation
+- Gradient Information Density (GID) scoring
+- Gradient novelty tracking with bounded memory graphs
+- Threshold, top-K, and hybrid sparsification
+- Element-level gradient masking
+- Adaptive learning-rate, threshold, and GID-weight control
+- Module, layer, and automatic parameter-block routing
+- NumPy model serialization and optional PyTorch, TensorFlow, and Keras export
+- MNIST benchmark and synthetic smoke tests
 
-In CGS, gradients are not a byproduct — they are **modeled explicitly**. The system:
-- 🔮 **Thinks before learning** (Gradient Probing Layer)
-- 🎯 **Learns selectively** (Gradient Information Density scoring)
-- 🧠 **Remembers how it learned** (Gradient Memory Graph)
-- ⚡ **Adapts its own learning** (Adaptive Controller)
+## Requirements
 
----
+- Python 3.8 or newer
+- NumPy 1.21 or newer
+- Matplotlib 3.5 or newer for charts
 
-## 🏗️ Architecture: CGS-Net
-
-```
-Input Data
-    ↓
-┌──────────────────────────┐
-│   Multi-View Encoder     │  ← Creates 4 diverse views
-└──────────────────────────┘
-    ↓
-┌──────────────────────────┐
-│ Representation Space Hub │  ← Attention-based fusion
-└──────────────────────────┘
-    ↓
-┌──────────────────────────┐
-│ Gradient Probing Layer   │  ← 🔥 Simulates before learning
-└──────────────────────────┘
-    ↓
-┌──────────────────────────┐
-│ Gradient Intelligence    │
-│ Engine (GID + Memory)    │  ← 🔥 Scores gradient quality
-└──────────────────────────┘
-    ↓
-┌──────────────────────────┐
-│ Sparse Update Router     │  ← 🔥 Dynamic learning pathways
-└──────────────────────────┘
-    ↓
-┌──────────────────────────┐
-│ Modular Parameter Blocks │  ← Fine-grained learning control
-└──────────────────────────┘
-    ↓
-Output
-```
-
----
-
-## 🚀 Quick Start
-
-### Installation
+Install the core package:
 
 ```bash
-pip install numpy matplotlib
+pip install -e .
 ```
 
-### Quick Validation Test
+Install visualization dependencies:
+
+```bash
+pip install -e ".[viz]"
+```
+
+PyTorch or TensorFlow export can be installed through the optional extras:
+
+```bash
+pip install -e ".[export-pytorch]"
+pip install -e ".[export-tensorflow]"
+```
+
+## Quick Start
+
+Run the framework smoke test:
 
 ```bash
 python experiments/quick_test.py
 ```
 
-### Train on MNIST
+Run the MNIST benchmark:
 
 ```bash
 python experiments/run_mnist.py
 ```
 
-### Python API
+Run the component test suite:
+
+```bash
+python -m unittest discover -s tests -v
+```
+
+## Python API
 
 ```python
 from cgs.model.cgs_net import CGSNet
@@ -88,94 +84,230 @@ from cgs.data.dataset import MNISTDataset
 from cgs.data.dataloader import DataLoader
 from cgs.training.trainer import CGSTrainer
 
-# Create model
 model = CGSNet(input_dim=784, num_classes=10, variant='S')
 
-# Create trainer with CGS enabled
 trainer = CGSTrainer(
     model=model,
     optimizer=Adam(model.parameters(), lr=0.001),
     loss_fn=CrossEntropyLoss(),
-    use_cgs=True,           # Enable gradient intelligence
-    sparsity_threshold=0.3,  # Filter 30%+ of gradients
+    use_cgs=True,
+    use_full_probing=False,
+    sparsity_mode='hybrid',
+    sparsity_threshold=0.3,
+    warmup_epochs=2,
 )
 
-# Train
 dataset = MNISTDataset(root='./data/mnist', train=True)
 loader = DataLoader(dataset, batch_size=64, shuffle=True)
 history = trainer.train(train_loader=loader, epochs=10)
 ```
 
----
+Set `use_cgs=False` on `CGSTrainer` to run a standard dense training loop.
 
-## 🧩 Core Components
+## CGS-Net Architecture
 
-| Component | Module | Description |
-|-----------|--------|-------------|
-| **Tensor Engine** | `cgs.tensor` | Custom autograd with reverse-mode differentiation |
-| **Multi-View Encoder** | `cgs.encoder` | Creates diverse input views for gradient diversity |
-| **Gradient Probing** | `cgs.gradient.probing` | "Dry-run" learning simulations |
-| **GID Scoring** | `cgs.gradient.gid` | Magnitude × Novelty × Impact scoring |
-| **Memory Graph** | `cgs.gradient.memory_graph` | Graph-structured gradient history |
-| **Sparse Router** | `cgs.sparse.router` | Dynamic learning pathway selection |
-| **Parameter Blocks** | `cgs.sparse.parameter_block` | Independent learning units |
-| **Adaptive Controller** | `cgs.controller` | Self-adjusting hyperparameters |
-| **Weight Export** | `cgs.export` | Export to PyTorch, TensorFlow, Keras |
-
----
-
-## 📊 CGS-Net Variants
-
-| Variant | Hidden Dim | Encoder Layers | Param Blocks | Use Case |
-|---------|-----------|----------------|--------------|----------|
-| **CGS-Net-S** | 64 | 2 | 2 | Small datasets, edge AI |
-| **CGS-Net-M** | 128 | 4 | 4 | General tasks |
-| **CGS-Net-L** | 256 | 6 | 8 | Scalable systems |
-
----
-
-## 🔬 Gradient Information Density (GID)
-
-The novel metric at the heart of CGS:
-
-```
-GID = α·Magnitude + β·Novelty + γ·Impact
-
-where:
-  Magnitude = L2 norm of gradient vector
-  Novelty   = Cosine distance from nearest gradient in memory
-  Impact    = Predicted change in loss if gradient is applied
+```text
+Input
+  |
+  v
+Multi-View Encoder
+  raw | noisy | masked | scaled
+  |
+  v
+Attention-based Representation Hub
+  |
+  v
+Task Head
+  |
+  v
+Class logits
 ```
 
-Only gradients with **high GID** are used for parameter updates.
+During CGS training, the computed gradients pass through the following stages:
 
----
-
-## 🛠️ Implementation Details
-
-- **Language**: Pure Python
-- **Dependencies**: NumPy only (for training)
-- **No ML frameworks**: All forward pass, backprop, and optimization implemented from scratch
-- **Export**: Trained weights can be exported to PyTorch, TensorFlow, Keras
-
----
-
-## 📁 Project Structure
-
+```text
+Backpropagation
+  |
+  v
+Gradient preview or quick gradient analysis
+  |
+  v
+GID = alpha * magnitude
+    + beta * novelty
+    + gamma * impact
+  |
+  v
+Threshold / top-K / hybrid mask
+  |
+  v
+SparseUpdateRouter parameter-block decisions
+  |
+  v
+Optimizer update
+  |
+  v
+AdaptiveController hyperparameter adjustment
 ```
-├── cgs/
-│   ├── tensor/      # Autograd tensor engine
-│   ├── nn/          # Neural network layers
-│   ├── optim/       # Optimizers (SGD, Adam)
-│   ├── data/        # Datasets and data loading
-│   ├── encoder/     # Multi-view encoder
-│   ├── gradient/    # ⭐ Gradient intelligence (core innovation)
-│   ├── sparse/      # Sparse routing & parameter blocks
-│   ├── controller/  # Adaptive hyperparameter control
-│   ├── model/       # CGS-Net model assembly
-│   ├── training/    # Training pipeline
-│   ├── export/      # Weight serialization
-│   └── utils/       # Logging, config, visualization
-├── experiments/     # Benchmarks and tests
-└── config/          # Configuration files
+
+## CGS-Net Variants
+
+| Variant | Hidden dimension | Encoder layers | Parameter blocks | Intended use |
+|---|---:|---:|---:|---|
+| CGS-Net-S | 64 | 2 | 2 | Small datasets and quick experiments |
+| CGS-Net-M | 128 | 4 | 4 | General classification tasks |
+| CGS-Net-L | 256 | 6 | 8 | Larger and more complex tasks |
+
+## Sparsification Modes
+
+The sparsifier supports three parameter-selection and element-masking modes:
+
+- `threshold`: keep values or parameters meeting the GID threshold
+- `topk`: keep the configured fraction of the highest-ranked values or parameters
+- `hybrid`: require both threshold and top-K criteria
+
+The trainer enables element-level sparsification by default. An element remains
+masked unless it passes the selected rule and, for threshold/hybrid modes, the
+corresponding parameter GID meets the threshold.
+
+The adaptive controller can change the threshold during training. Warm-up,
+loss-plateau response, convergence, and learning-rate scheduling are handled
+inside `AdaptiveController`.
+
+## Gradient Intelligence
+
+GID combines:
+
+```text
+Magnitude = L2 norm of the gradient
+Novelty   = 1 - maximum similarity to stored gradients
+Impact    = absolute predicted loss change
+
+GID = alpha * magnitude
+    + beta * novelty
+    + gamma * impact
 ```
+
+When full probing is disabled, quick probing uses gradient magnitude as the
+impact proxy for faster execution.
+
+Full probing can simulate updates for individual parameters and sample gradient
+direction stability. `probe_fraction` controls which parameter groups receive
+the more expensive simulation.
+
+## Configuration
+
+The default model, training, CGS, data, and benchmark settings are in
+[`config/default.yaml`](config/default.yaml).
+
+The loader is a small built-in YAML parser and also accepts JSON configuration
+files. The MNIST benchmark uses the `benchmark` section of this file.
+
+Example:
+
+```yaml
+cgs:
+  enabled: true
+  use_full_probing: false
+  gid_alpha: 0.3
+  gid_beta: 0.4
+  gid_gamma: 0.3
+  sparsity_mode: hybrid
+  sparsity_threshold: 0.3
+  warmup_epochs: 2
+  block_granularity: module
+```
+
+## Core Modules
+
+| Component | Location | Responsibility |
+|---|---|---|
+| Tensor engine | `cgs/tensor` | Tensors and reverse-mode autograd |
+| Neural-network primitives | `cgs/nn` | Linear, activation, normalization, dropout, and loss modules |
+| Optimizers | `cgs/optim` | SGD and Adam |
+| Data pipeline | `cgs/data` | MNIST, synthetic data, transforms, and batching |
+| Encoders | `cgs/encoder` | Multi-view and representation fusion |
+| Gradient intelligence | `cgs/gradient` | Probing, GID, and gradient memory |
+| Sparse updates | `cgs/sparse` | Sparsification, routing, and parameter blocks |
+| Adaptive control | `cgs/controller` | Dynamic training hyperparameters |
+| Training | `cgs/training` | Training loops, callbacks, and metrics |
+| Serialization | `cgs/export` | NumPy weights and framework export adapters |
+| Configuration and utilities | `cgs/utils` | YAML/JSON loading, logging, seeds, and plotting |
+
+## MNIST Benchmark
+
+[`experiments/run_mnist.py`](experiments/run_mnist.py) can run:
+
+- Standard training on 2 percent of MNIST
+- CGS training on 2 percent of MNIST
+- CGS training on 0.5 percent of MNIST
+
+It writes:
+
+- Training histories under `logs/`
+- Model weights under `models/`
+- Epoch checkpoints under `checkpoints/`
+- Accuracy and loss charts under `results/`
+
+Benchmark settings, including seed and subset fractions, are configured in
+`benchmark` in [`config/default.yaml`](config/default.yaml).
+
+## Testing
+
+The suite includes tests for:
+
+- Nested configuration loading
+- Adaptive threshold and learning-rate bounds
+- Sparse router constraints
+- Element-level and hybrid sparsification
+- Weight serialization round trips
+
+The smoke test also validates:
+
+- Analytical versus numerical gradients
+- Neural-network forward and backward passes
+- CGS-Net construction
+- Gradient intelligence
+- Synthetic CGS training
+- Weight save/load behavior
+
+## Saving and Exporting Models
+
+```python
+from cgs.export.serializer import save_weights, load_weights
+
+save_weights(model, './models/cgs_model')
+load_weights(model, './models/cgs_model.npz')
+```
+
+Optional adapters are available for PyTorch, TensorFlow, and Keras:
+
+```python
+from cgs.export.serializer import export_to_pytorch
+
+export_to_pytorch(model, './models/cgs_model.pt')
+```
+
+## Project Structure
+
+```text
+cgs/
+  tensor/        Custom tensor and autograd engine
+  nn/            Neural-network primitives
+  optim/         SGD and Adam
+  data/          Dataset, dataloader, and transforms
+  encoder/       Multi-view encoder and representation hub
+  gradient/      Probing, GID, memory graph, and intelligence engine
+  sparse/        Sparsifier, router, and parameter blocks
+  controller/    Adaptive hyperparameter controller
+  model/         CGS-Net and variants
+  training/      Trainer, callbacks, and metrics
+  export/        Weight and framework export
+  utils/         Config, seed, logging, and visualization
+experiments/     MNIST benchmark and smoke test
+config/          Default YAML configuration
+tests/           Component unit tests
+```
+
+## License
+
+See [`LICENSE.md`](LICENSE.md).
